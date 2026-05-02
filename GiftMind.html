@@ -1,0 +1,811 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>GiftMind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+<style>
+  :root {
+    --ink: #1a1414;
+    --paper: #fbf7f4;
+    --paper-pure: #ffffff;
+    --tint: #f7ebe5;
+    --tint-strong: #f3dcd2;
+    --pink: #d96b7a;
+    --pink-soft: #e89aa4;
+    --pink-deep: #b54858;
+    --muted: #7a6a66;
+    --tabh: 64px;
+    --topbar: 44px;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
+  body {
+    font-family: "Inter", -apple-system, sans-serif;
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  #root { height: 100%; width: 100%; display: flex; flex-direction: column; }
+  .mono { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+
+  .topbar {
+    height: var(--topbar);
+    flex: 0 0 var(--topbar);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 18px;
+    background: var(--paper);
+    border-bottom: 0.5px solid var(--ink);
+    font-family: "JetBrains Mono", monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 5;
+  }
+  .topbar .blink { width: 6px; height: 6px; background: var(--pink); border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; animation: blink 1.6s infinite; }
+  @keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:.2} }
+  .topbar .back { cursor: pointer; padding: 6px 10px 6px 0; display: flex; align-items: center; gap: 8px; color: var(--ink); }
+  .topbar .back svg { display: block; }
+
+  .view {
+    flex: 1; overflow-y: auto; overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    background: var(--paper);
+    position: relative;
+  }
+  .pad { padding: 22px 22px; }
+
+  .tabbar {
+    height: var(--tabh); flex: 0 0 var(--tabh);
+    display: grid; grid-template-columns: repeat(5, 1fr);
+    border-top: 0.5px solid var(--ink);
+    background: var(--paper);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .tab {
+    padding: 10px 0 8px; text-align: center; cursor: pointer;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 8px; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted);
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    border-right: 0.5px solid rgba(26,20,20,0.12);
+  }
+  .tab:last-child { border-right: 0; }
+  .tab.on { color: var(--pink-deep); }
+
+  .display { font-family: "Inter", sans-serif; font-weight: 300; font-size: 38px; line-height: 0.95; letter-spacing: -0.025em; }
+  .display em { font-style: italic; font-weight: 300; color: var(--pink-deep); }
+  .eyebrow { font-family: "JetBrains Mono", monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  .eyebrow .num { border: 0.5px solid var(--ink); padding: 1px 5px; color: var(--ink); }
+  .eyebrow .right { margin-left: auto; }
+
+  .card { background: var(--paper-pure); border: 0.5px solid var(--ink); padding: 16px; }
+  .row { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 0.5px dashed rgba(26,20,20,0.4); }
+  .row:last-child { border-bottom: 0; }
+  .row .k { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .row .v { font-size: 14px; font-weight: 500; }
+
+  .input {
+    width: 100%; border: 0; border-bottom: 0.5px solid var(--ink);
+    padding: 12px 0 10px;
+    font-family: "Inter", sans-serif; font-size: 18px; color: var(--ink);
+    background: transparent; outline: none; border-radius: 0;
+    appearance: none; -webkit-appearance: none;
+  }
+  .input::placeholder { color: rgba(26,20,20,0.3); font-style: italic; }
+  textarea.input { resize: none; line-height: 1.5; font-size: 15px; padding-top: 10px; font-family: "Inter", sans-serif; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 8px 12px; border: 0.5px solid var(--ink); background: var(--paper-pure); font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; cursor: pointer; }
+  .chip.on { background: var(--pink); color: #fff; border-color: var(--pink-deep); }
+
+  .btn {
+    width: 100%; background: var(--ink); color: var(--paper); border: 0;
+    padding: 16px; font-family: "JetBrains Mono", monospace;
+    font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase;
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 14px;
+    border-radius: 0;
+  }
+  .btn.pink { background: var(--pink); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 0.5px solid var(--ink); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+  .btn .arr { width: 22px; height: 1px; background: currentColor; position: relative; display: inline-block; }
+  .btn .arr::after { content: ""; position: absolute; right: 0; top: -3px; width: 6px; height: 6px; border-right: 1px solid currentColor; border-top: 1px solid currentColor; transform: rotate(45deg); }
+
+  .diagram {
+    aspect-ratio: 1.05/1;
+    border: 0.5px solid var(--ink);
+    position: relative; overflow: hidden;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 13px, rgba(26,20,20,0.05) 13px, rgba(26,20,20,0.05) 14px),
+      repeating-linear-gradient(90deg, transparent, transparent 13px, rgba(26,20,20,0.05) 13px, rgba(26,20,20,0.05) 14px),
+      var(--paper-pure);
+  }
+  .diagram svg { width: 100%; height: 100%; display: block; }
+  .corner { position: absolute; padding: 4px 6px; font-family: "JetBrains Mono", monospace; font-size: 7px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .corner.tl { top: 0; left: 0; }
+  .corner.tr { top: 0; right: 0; }
+  .corner.bl { bottom: 0; left: 0; }
+  .corner.br { bottom: 0; right: 0; }
+
+  .result { background: var(--paper-pure); border: 0.5px solid var(--ink); }
+  .result h3 { font-family: "Inter", sans-serif; font-weight: 400; font-size: 22px; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 4px; }
+  .result h3 em { font-style: italic; color: var(--pink-deep); }
+  .result .price { font-family: "JetBrains Mono", monospace; font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; margin: 0 0 12px; display: flex; gap: 8px; align-items: center; }
+  .result .price .tag { border: 0.5px solid var(--ink); padding: 2px 6px; white-space: nowrap; }
+  .result .why { font-size: 13px; line-height: 1.55; color: #3a2e2c; padding: 0 16px 16px; }
+
+  .scan { padding: 40px 24px; gap: 28px; display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
+  .scan-frame { width: 100%; max-width: 280px; aspect-ratio: 1.4/1; border: 0.5px solid var(--ink); position: relative; overflow: hidden; background: var(--paper-pure); }
+  .scan-frame::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: var(--pink); animation: scan 1.6s linear infinite; }
+  @keyframes scan { 0%{transform:translateY(0)} 100%{transform:translateY(200px)} }
+  .scan-frame .grid { position: absolute; inset: 0;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 11px, rgba(26,20,20,0.07) 11px, rgba(26,20,20,0.07) 12px),
+      repeating-linear-gradient(90deg, transparent, transparent 11px, rgba(26,20,20,0.07) 11px, rgba(26,20,20,0.07) 12px);
+  }
+  .scan .pct { font-family: "Inter", sans-serif; font-weight: 200; font-size: 56px; letter-spacing: -0.03em; line-height: 1; }
+  .scan .pct .pp { color: var(--pink-deep); }
+  .scan .step { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--muted); text-align: center; min-height: 1.6em; }
+
+  .avatar { width: 38px; height: 38px; border: 0.5px solid var(--ink); display: flex; align-items: center; justify-content: center; font-family: "JetBrains Mono", monospace; font-size: 11px; background: var(--tint); flex: 0 0 38px; }
+  .avatar.pink { background: var(--pink); color: #fff; border-color: var(--pink-deep); }
+  .list-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 0.5px solid rgba(26,20,20,0.15); cursor: pointer; }
+  .list-row .name { font-size: 15px; font-weight: 500; line-height: 1.2; }
+  .list-row .sub { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .arrow { width: 16px; height: 1px; background: var(--ink); position: relative; }
+  .arrow::after { content: ""; position: absolute; right: 0; top: -3px; width: 6px; height: 6px; border-right: 1px solid var(--ink); border-top: 1px solid var(--ink); transform: rotate(45deg); }
+
+  .occ { display: flex; gap: 14px; align-items: center; padding: 14px; background: var(--paper-pure); border: 0.5px solid var(--ink); margin-bottom: 8px; }
+  .occ .date { width: 50px; text-align: center; border-right: 0.5px solid var(--ink); padding-right: 12px; flex: 0 0 auto; }
+  .occ .date .d { font-family: "Inter", sans-serif; font-weight: 300; font-size: 28px; line-height: 1; letter-spacing: -0.02em; }
+  .occ .date .m { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+  .occ .who { flex: 1; min-width: 0; }
+  .occ .who .nm { font-size: 14px; font-weight: 500; }
+  .occ .who .sub { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin-top: 2px; }
+
+  .set-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 0.5px solid rgba(26,20,20,0.15); }
+  .set-row .l { font-size: 14px; }
+  .set-row .r { font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+  .toggle { width: 36px; height: 20px; border: 0.5px solid var(--ink); position: relative; cursor: pointer; background: var(--paper-pure); }
+  .toggle .knob { position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; background: var(--ink); transition: left 0.2s; }
+  .toggle.on { background: var(--pink); border-color: var(--pink-deep); }
+  .toggle.on .knob { left: 18px; background: #fff; }
+
+  .section-h { display: flex; align-items: baseline; justify-content: space-between; margin: 24px 0 12px; }
+  .section-h .ti { font-size: 18px; font-weight: 500; letter-spacing: -0.01em; }
+  .section-h .right { font-family: "JetBrains Mono", monospace; font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+  .res-tabs { display: flex; gap: 6px; }
+  .res-tab { flex: 1; padding: 6px 0; text-align: center; border: 0.5px solid var(--ink); background: var(--paper-pure); cursor: pointer; font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; }
+  .res-tab.on { background: var(--pink); color: #fff; border-color: var(--pink-deep); }
+
+  .share-overlay { position: fixed; inset: 0; background: rgba(26,20,20,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 80; display: flex; align-items: flex-end; }
+  .share-sheet { width: 100%; background: var(--paper); border-top: 0.5px solid var(--ink); padding: 18px 22px 28px; animation: slideUp 0.25s ease-out; padding-bottom: calc(28px + env(safe-area-inset-bottom)); }
+  @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+  .share-grip { width: 40px; height: 3px; background: rgba(26,20,20,0.3); margin: 0 auto 16px; }
+  .share-options { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+  .share-opt { aspect-ratio: 1; border: 0.5px solid var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; cursor: pointer; padding: 6px; background: var(--paper-pure); }
+  .share-opt .glyph { font-size: 18px; }
+  .share-opt .lbl { font-family: "JetBrains Mono", monospace; font-size: 8px; letter-spacing: 0.14em; text-transform: uppercase; text-align: center; }
+
+  .notif { display: flex; gap: 12px; background: var(--paper-pure); border: 0.5px solid var(--ink); padding: 12px 14px; }
+  .notif .ico { width: 28px; height: 28px; flex: 0 0 28px; background: var(--pink); color: #fff; display: flex; align-items: center; justify-content: center; font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 600; }
+
+  .err-banner { background: var(--tint-strong); border: 0.5px solid var(--pink-deep); padding: 12px 16px; margin: 0 22px 16px; font-size: 13px; color: var(--pink-deep); font-family: "JetBrains Mono", monospace; font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef } = React;
+
+const DIAGRAMS = ["lens","book","vessel"];
+
+const RECIPIENTS = [
+  { initials: "YA", name: "Yael", role: "Sister",  next: "Birthday · 23 May" },
+  { initials: "MC", name: "Marco", role: "Partner", next: "Anniversary · 04 Jun" },
+  { initials: "DV", name: "David", role: "Father",  next: "Father's Day · 15 Jun" },
+  { initials: "PR", name: "Priya", role: "Friend",  next: "Birthday · 02 Jul" },
+  { initials: "JK", name: "Jin",   role: "Mentor",  next: "Promotion · pending" },
+];
+
+const OCCASIONS = [
+  { day: "11", month: "MAY", name: "Aunt Sofia",   kind: "Birthday",     daysAway: 9 },
+  { day: "23", month: "MAY", name: "Yael",         kind: "Birthday",     daysAway: 21 },
+  { day: "04", month: "JUN", name: "Marco",        kind: "Anniversary",  daysAway: 33 },
+  { day: "15", month: "JUN", name: "David",        kind: "Father's Day", daysAway: 44 },
+  { day: "02", month: "JUL", name: "Priya",        kind: "Birthday",     daysAway: 61 },
+  { day: "20", month: "AUG", name: "Theo",         kind: "Graduation",   daysAway: 110 },
+];
+
+const HISTORY = [
+  { gift: "Hand-bound notebook", recipient: "Yael", date: "23 May 2025", note: "Loved it. Used it within a week." },
+  { gift: "Single-origin cup",   recipient: "Marco", date: "04 Jun 2025", note: "Pair, ceramic. Now part of the morning rotation." },
+  { gift: "Manual rangefinder",  recipient: "David", date: "20 Dec 2024", note: "Took six months to actually use. Now goes everywhere." },
+  { gift: "Linen apron",         recipient: "Priya", date: "02 Jul 2024", note: "Said it was the best apron she'd ever owned." },
+];
+
+// ── icons
+const Ico = ({ name, size=18, color="currentColor" }) => {
+  const c = color, s = size;
+  const wraps = { width: s, height: s, viewBox: "0 0 18 18", fill: "none" };
+  if (name==="compose") return (<svg {...wraps}><path d="M3 13.5L13.5 3L15 4.5L4.5 15H3V13.5Z" stroke={c} strokeWidth="0.8"/><line x1="11" y1="5" x2="13" y2="7" stroke={c} strokeWidth="0.8"/></svg>);
+  if (name==="people") return (<svg {...wraps}><circle cx="6" cy="6" r="2.5" stroke={c} strokeWidth="0.8"/><circle cx="12" cy="6.5" r="2" stroke={c} strokeWidth="0.8"/><path d="M2 14C2 11.5 4 10 6 10C8 10 10 11.5 10 14" stroke={c} strokeWidth="0.8"/><path d="M10 13.5C10 12 11.5 11 12 11C12.5 11 14 12 14 13.5" stroke={c} strokeWidth="0.8"/></svg>);
+  if (name==="calendar") return (<svg {...wraps}><rect x="2.5" y="3.5" width="13" height="12" stroke={c} strokeWidth="0.8"/><line x1="2.5" y1="7" x2="15.5" y2="7" stroke={c} strokeWidth="0.8"/><line x1="6" y1="2" x2="6" y2="5" stroke={c} strokeWidth="0.8"/><line x1="12" y1="2" x2="12" y2="5" stroke={c} strokeWidth="0.8"/><circle cx="9" cy="11" r="1" fill={c}/></svg>);
+  if (name==="history") return (<svg {...wraps}><circle cx="9" cy="9" r="6.5" stroke={c} strokeWidth="0.8"/><path d="M9 4.5V9L12 11" stroke={c} strokeWidth="0.8"/></svg>);
+  if (name==="settings") return (<svg {...wraps}><circle cx="9" cy="9" r="2" stroke={c} strokeWidth="0.8"/><line x1="9" y1="2" x2="9" y2="4" stroke={c} strokeWidth="0.8"/><line x1="9" y1="14" x2="9" y2="16" stroke={c} strokeWidth="0.8"/><line x1="2" y1="9" x2="4" y2="9" stroke={c} strokeWidth="0.8"/><line x1="14" y1="9" x2="16" y2="9" stroke={c} strokeWidth="0.8"/><line x1="4" y1="4" x2="5.5" y2="5.5" stroke={c} strokeWidth="0.8"/><line x1="12.5" y1="12.5" x2="14" y2="14" stroke={c} strokeWidth="0.8"/><line x1="14" y1="4" x2="12.5" y2="5.5" stroke={c} strokeWidth="0.8"/><line x1="5.5" y1="12.5" x2="4" y2="14" stroke={c} strokeWidth="0.8"/></svg>);
+  if (name==="back") return (<svg {...wraps}><line x1="14" y1="9" x2="3" y2="9" stroke={c} strokeWidth="0.9"/><path d="M7 5L3 9L7 13" stroke={c} strokeWidth="0.9"/></svg>);
+  if (name==="share") return (<svg {...wraps}><path d="M9 2V11" stroke={c} strokeWidth="0.9"/><path d="M5 6L9 2L13 6" stroke={c} strokeWidth="0.9"/><rect x="3" y="9" width="12" height="7" stroke={c} strokeWidth="0.9"/></svg>);
+  if (name==="heart") return (<svg {...wraps}><path d="M9 14.5C9 14.5 3 11 3 6.5C3 4.5 4.5 3 6.5 3C7.8 3 9 4 9 4C9 4 10.2 3 11.5 3C13.5 3 15 4.5 15 6.5C15 11 9 14.5 9 14.5Z" stroke={c} strokeWidth="0.9" fill={color==="var(--pink-deep)"?"var(--pink-deep)":"none"}/></svg>);
+  if (name==="plus") return (<svg {...wraps}><line x1="9" y1="3" x2="9" y2="15" stroke={c} strokeWidth="1"/><line x1="3" y1="9" x2="15" y2="9" stroke={c} strokeWidth="1"/></svg>);
+  return null;
+};
+
+// ── category icons
+const TAG_ICONS = {
+  OPTICAL:   (<><circle cx="32" cy="32" r="18" fill="none" stroke="#1a1414" strokeWidth="1.5"/><circle cx="32" cy="32" r="8" fill="#1a1414"/><line x1="32" y1="8" x2="32" y2="14" stroke="#1a1414" strokeWidth="1.5"/><line x1="32" y1="50" x2="32" y2="56" stroke="#1a1414" strokeWidth="1.5"/><line x1="8" y1="32" x2="14" y2="32" stroke="#1a1414" strokeWidth="1.5"/><line x1="50" y1="32" x2="56" y2="32" stroke="#1a1414" strokeWidth="1.5"/></>),
+  VOLUME:    (<><rect x="14" y="16" width="28" height="36" rx="1" fill="none" stroke="#1a1414" strokeWidth="1.5"/><line x1="14" y1="22" x2="42" y2="22" stroke="#1a1414" strokeWidth="0.8"/><line x1="18" y1="28" x2="38" y2="28" stroke="#1a1414" strokeWidth="0.8"/><line x1="18" y1="33" x2="38" y2="33" stroke="#1a1414" strokeWidth="0.8"/><line x1="18" y1="38" x2="32" y2="38" stroke="#1a1414" strokeWidth="0.8"/><rect x="10" y="20" width="28" height="36" rx="1" fill="var(--paper-pure)" stroke="#1a1414" strokeWidth="1.5"/><line x1="10" y1="26" x2="38" y2="26" stroke="#1a1414" strokeWidth="0.8"/><line x1="14" y1="32" x2="34" y2="32" stroke="#1a1414" strokeWidth="0.8"/><line x1="14" y1="37" x2="34" y2="37" stroke="#1a1414" strokeWidth="0.8"/><line x1="14" y1="42" x2="28" y2="42" stroke="#1a1414" strokeWidth="0.8"/></>),
+  VESSEL:    (<><ellipse cx="32" cy="18" rx="12" ry="3" fill="none" stroke="#1a1414" strokeWidth="1.2"/><path d="M20 18 Q18 38 22 48 Q32 54 42 48 Q46 38 44 18" fill="none" stroke="#1a1414" strokeWidth="1.5"/><path d="M42 26 Q50 28 50 36 Q50 42 42 42" fill="none" stroke="#1a1414" strokeWidth="1.2"/></>),
+  TEXTILE:   (<><path d="M16 20 Q24 14 32 20 Q40 26 48 20" fill="none" stroke="#1a1414" strokeWidth="1.5"/><path d="M16 28 Q24 22 32 28 Q40 34 48 28" fill="none" stroke="#1a1414" strokeWidth="1.5"/><path d="M16 36 Q24 30 32 36 Q40 42 48 36" fill="none" stroke="#1a1414" strokeWidth="1.5"/><path d="M16 44 Q24 38 32 44 Q40 50 48 44" fill="none" stroke="#1a1414" strokeWidth="1.5"/></>),
+  CULINARY:  (<><path d="M24 12 L24 30" stroke="#1a1414" strokeWidth="1.5"/><path d="M20 14 Q16 20 20 26 Q24 30 24 30" fill="none" stroke="#1a1414" strokeWidth="1.2"/><path d="M28 14 Q32 20 28 26 Q24 30 24 30" fill="none" stroke="#1a1414" strokeWidth="1.2"/><line x1="24" y1="30" x2="24" y2="52" stroke="#1a1414" strokeWidth="1.5"/><path d="M36 12 L36 22 Q40 26 40 30 L40 52" stroke="#1a1414" strokeWidth="1.5"/></>),
+  KINETIC:   (<><circle cx="32" cy="32" r="20" fill="none" stroke="#1a1414" strokeWidth="1.5"/><circle cx="32" cy="32" r="4" fill="#1a1414"/><line x1="32" y1="28" x2="32" y2="16" stroke="#1a1414" strokeWidth="1.5"/><line x1="32" y1="36" x2="38" y2="46" stroke="#1a1414" strokeWidth="1.2"/><line x1="20" y1="20" x2="26" y2="26" stroke="#1a1414" strokeWidth="0.8" strokeDasharray="2 2"/><line x1="44" y1="20" x2="38" y2="26" stroke="#1a1414" strokeWidth="0.8" strokeDasharray="2 2"/></>),
+  DIGITAL:   (<><rect x="12" y="16" width="40" height="28" rx="2" fill="none" stroke="#1a1414" strokeWidth="1.5"/><line x1="32" y1="44" x2="32" y2="50" stroke="#1a1414" strokeWidth="1.5"/><line x1="24" y1="50" x2="40" y2="50" stroke="#1a1414" strokeWidth="1.5"/><circle cx="24" cy="26" r="2" fill="#1a1414"/><circle cx="32" cy="26" r="2" fill="#1a1414"/><circle cx="40" cy="26" r="2" fill="#1a1414"/><line x1="20" y1="34" x2="44" y2="34" stroke="#1a1414" strokeWidth="0.8"/></>),
+  ACOUSTIC:  (<><path d="M22 22 L22 42 L30 38 L30 26 Z" fill="#1a1414"/><path d="M30 26 Q40 32 40 32 Q40 32 30 38" fill="none" stroke="#1a1414" strokeWidth="1.5"/><path d="M34 22 Q46 28 46 32 Q46 36 34 42" fill="none" stroke="#1a1414" strokeWidth="1.2"/><path d="M38 18 Q52 24 52 32 Q52 40 38 46" fill="none" stroke="#1a1414" strokeWidth="0.8"/></>),
+  BOTANICAL: (<><path d="M32 52 L32 28" stroke="#1a1414" strokeWidth="1.5"/><path d="M32 38 Q20 30 18 18 Q28 18 34 28" fill="none" stroke="#1a1414" strokeWidth="1.2"/><path d="M32 34 Q44 26 46 14 Q36 14 30 24" fill="none" stroke="#1a1414" strokeWidth="1.2"/><path d="M32 44 Q24 42 20 48" fill="none" stroke="#1a1414" strokeWidth="1"/></>),
+  TACTILE:   (<><path d="M20 38 L20 24 Q20 20 24 20 Q28 20 28 24 L28 32" stroke="#1a1414" strokeWidth="1.5" fill="none"/><path d="M28 30 L28 22 Q28 18 32 18 Q36 18 36 22 L36 30" stroke="#1a1414" strokeWidth="1.5" fill="none"/><path d="M36 30 L36 24 Q36 20 40 20 Q44 20 44 24 L44 38 Q44 48 32 50 Q20 50 20 38" stroke="#1a1414" strokeWidth="1.5" fill="none"/></>),
+};
+
+const TagIcon = ({ tag, size = 64 }) => {
+  const paths = TAG_ICONS[tag] || TAG_ICONS["TACTILE"];
+  return (
+    <svg viewBox="0 0 64 64" width={size} height={size} fill="none" xmlns="http://www.w3.org/2000/svg">
+      {paths}
+    </svg>
+  );
+};
+
+// ── shared
+const TopBar = ({ title, onBack, right }) => (
+  <div className="topbar">
+    <div style={{display:"flex", alignItems:"center", gap:10, flex:1}}>
+      {onBack && <span className="back" onClick={onBack}><Ico name="back" size={16}/></span>}
+      <span><span className="blink"/>{title}</span>
+    </div>
+    <div>{right}</div>
+  </div>
+);
+
+const Eyebrow = ({ num, children, right }) => (
+  <div className="eyebrow"><span className="num">{num}</span><span>{children}</span>{right && <span className="right">{right}</span>}</div>
+);
+
+// ── API key storage
+const getKey = () => localStorage.getItem("gm_apikey") || "";
+const setKey = (k) => localStorage.setItem("gm_apikey", k);
+
+// ── AI call
+async function fetchGifts(form) {
+  const apiKey = getKey();
+  if (!apiKey) throw new Error("NO_KEY");
+
+  const budgetStr = form.budget >= 500 ? `$${form.budget}+` : `$${form.budget}`;
+  const prompt = `You are a thoughtful, minimalist gift advisor with refined taste.
+
+Recipient: ${form.relationship}, age ${form.age || "unknown"}, ${form.gender || "gender unspecified"}
+Occasion: ${form.occasion}
+Interests: ${form.interests || "not specified"}
+Budget: up to ${budgetStr}
+
+Generate exactly 3 gift candidates. Each should feel considered, specific, and high-quality — not generic.
+
+Respond ONLY with a JSON array, no markdown, no explanation:
+[
+  {"name":"short poetic name","qualifier":"2–4 word descriptor phrase","price":"$XX","tag":"CATEGORY","why":"2 sentences on why this fits the recipient specifically."},
+  {"name":"...","qualifier":"...","price":"$XX","tag":"CATEGORY","why":"..."},
+  {"name":"...","qualifier":"...","price":"$XX","tag":"CATEGORY","why":"..."}
+]
+
+Rules:
+- name: 2–4 words, lowercase except proper nouns
+- qualifier: lowercase italic descriptor (e.g. "single malt, cask strength")
+- price: must fit within ${budgetStr} budget
+- tag: 1 uppercase word (OPTICAL / VOLUME / VESSEL / TEXTILE / CULINARY / KINETIC / DIGITAL / ACOUSTIC / BOTANICAL / TACTILE)
+- why: specific, warm, 1–2 sentences`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true"
+    },
+    body: JSON.stringify({
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 1000,
+      messages: [{ role: "user", content: prompt }]
+    })
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || `HTTP ${res.status}`);
+  }
+  const data = await res.json();
+  const text = data.content.map(b => b.text || "").join("").replace(/```json|```/g,"").trim();
+  const parsed = JSON.parse(text);
+  return parsed.map((item, i) => ({ ...item, diagram: DIAGRAMS[i % 3] }));
+}
+
+// ── Compose
+const Compose = ({ form, setForm, onCompute }) => {
+  const completion = [form.age, form.gender, form.relationship, form.occasion, form.interests, form.budget !== null].filter(Boolean).length;
+  const can = completion === 6;
+  return (
+    <>
+      <TopBar title="GM-001 · Sheet 01"/>
+      <div className="view">
+        <div className="pad">
+          <Eyebrow num="00">Compose</Eyebrow>
+          <div className="display" style={{ marginTop: 12 }}>Tell us about<br/><em>them.</em></div>
+          <div className="mono" style={{ color: "var(--muted)", marginTop: 12 }}>{completion}/06 fields complete</div>
+        </div>
+        <div className="pad" style={{ paddingTop: 0 }}>
+          <Eyebrow num="01">Age</Eyebrow>
+          <input className="input" placeholder="e.g. 32" inputMode="numeric"
+            value={form.age} onChange={e => setForm({...form, age: e.target.value.replace(/[^0-9]/g,"").slice(0,3)})}/>
+        </div>
+        <div className="pad" style={{ paddingTop: 0 }}>
+          <Eyebrow num="02">Gender</Eyebrow>
+          <div className="chips" style={{ marginTop: 10 }}>
+            {["Female","Male","Non-binary","Neutral"].map(g => (
+              <div key={g} className={"chip" + (form.gender===g ? " on" : "")} onClick={() => setForm({...form, gender: g})}>{g}</div>
+            ))}
+          </div>
+        </div>
+        <div className="pad" style={{ paddingTop: 0 }}>
+          <Eyebrow num="03">Relationship</Eyebrow>
+          <div className="chips" style={{ marginTop: 10 }}>
+            {["Spouse","Partner","Parent","Sibling","Friend","Colleague","Mentor"].map(g => (
+              <div key={g} className={"chip" + (form.relationship===g ? " on" : "")} onClick={() => setForm({...form, relationship: g})}>{g}</div>
+            ))}
+          </div>
+        </div>
+        <div className="pad" style={{ paddingTop: 0 }}>
+          <Eyebrow num="04">Occasion</Eyebrow>
+          <div className="chips" style={{ marginTop: 10 }}>
+            {["Birthday","Anniversary","Graduation","Promotion","Holiday","Just because"].map(g => (
+              <div key={g} className={"chip" + (form.occasion===g ? " on" : "")} onClick={() => setForm({...form, occasion: g})}>{g}</div>
+            ))}
+          </div>
+        </div>
+        <div className="pad" style={{ paddingTop: 0 }}>
+          <Eyebrow num="05">Interests</Eyebrow>
+          <textarea className="input" rows="3" placeholder="photography, slow mornings, Leica…"
+            value={form.interests} onChange={e => setForm({...form, interests: e.target.value})}/>
+        </div>
+        <div className="pad" style={{ paddingTop: 4 }}>
+          <Eyebrow num="06" right={`$${form.budget}${form.budget>=500?"+":""}`}>Budget</Eyebrow>
+          <input type="range" min="0" max="6" step="1"
+            value={[25,50,100,150,250,500,1000].indexOf(form.budget) === -1 ? 2 : [25,50,100,150,250,500,1000].indexOf(form.budget)}
+            onChange={e => setForm({...form, budget: [25,50,100,150,250,500,1000][parseInt(e.target.value,10)]})}
+            style={{ width: "100%", marginTop: 16, accentColor: "var(--pink-deep)" }}/>
+          <div className="mono" style={{ display: "flex", justifyContent: "space-between", color: "var(--muted)", marginTop: 4 }}>
+            <span>$25</span><span>$1000+</span>
+          </div>
+        </div>
+        <div className="pad" style={{ paddingTop: 8, paddingBottom: 32 }}>
+          <div className="mono" style={{ marginBottom: 12, color: "var(--muted)" }}>
+            <span className="blink"/>{can ? "Manifest complete" : `${6-completion} field${6-completion===1?"":"s"} remaining`}
+          </div>
+          <button className="btn pink" disabled={!can} onClick={onCompute}>Compute three objects <span className="arr"/></button>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── Loading (with real API call)
+const Loading = ({ form, onDone, onError }) => {
+  const [pct, setPct] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+  const steps = ["Parsing recipient manifest…","Cross-referencing interests…","Filtering by relationship…","Composing candidates…","Drafting exploded views…"];
+  const called = useRef(false);
+
+  useEffect(() => {
+    // Progress animation — runs up to 90, waits for API
+    const t = setInterval(() => setPct(p => p < 90 ? p + 2 : p), 80);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const t = setInterval(() => setStepIdx(i => (i + 1) % steps.length), 700);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (called.current) return;
+    called.current = true;
+    fetchGifts(form)
+      .then(results => {
+        setPct(100);
+        setTimeout(() => onDone(results), 400);
+      })
+      .catch(err => {
+        if (err.message === "NO_KEY") {
+          onError("API anahtarı gerekli. Settings sekmesine git ve Anthropic API key'ini gir.");
+        } else {
+          onError("Bağlantı hatası: " + err.message);
+        }
+      });
+  }, []);
+
+  return (
+    <>
+      <TopBar title="Computing…"/>
+      <div className="view" style={{ display: "flex", flexDirection: "column" }}>
+        <div className="scan">
+          <div className="scan-frame"><div className="grid"/></div>
+          <div className="pct">{String(pct).padStart(3,"0")}<span className="pp">%</span></div>
+          <div className="step">{steps[stepIdx]}</div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── Results
+const Results = ({ form, results, onBack, onSelect, onReset }) => {
+  const [active, setActive] = useState(0);
+  return (
+    <>
+      <TopBar title="03 · Candidates" onBack={onBack}/>
+      <div className="view">
+        <div className="pad">
+          <Eyebrow num="03">Result</Eyebrow>
+          <div className="display" style={{ marginTop: 10 }}>Three considered<br/><em>objects.</em></div>
+          <div className="mono" style={{ color: "var(--muted)", marginTop: 12, lineHeight: 1.6 }}>
+            For: {form.relationship || "—"} · age {form.age} · {form.occasion} · ${form.budget}
+          </div>
+        </div>
+        <div className="pad" style={{ paddingTop: 8 }}>
+          <div className="res-tabs">
+            {results.map((_, i) => (
+              <div key={i} className={"res-tab" + (i===active?" on":"")} onClick={() => setActive(i)}>FIG·{String.fromCharCode(65+i)}</div>
+            ))}
+          </div>
+        </div>
+        {results.map((r, i) => i === active && (
+          <div key={i} className="pad" style={{ paddingTop: 14 }}>
+            <div className="result" onClick={() => onSelect(i)}>
+              <div style={{ display:"flex", alignItems:"center", gap:16, padding:"16px 16px 0" }}>
+                <div style={{ width:72, height:72, border:"0.5px solid var(--ink)", background:"var(--tint)", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                  <TagIcon tag={r.tag} size={44}/>
+                </div>
+                <div style={{ flex:1, minWidth:0 }}>
+                  <h3 style={{ fontSize:18 }}>{r.name},<br/><em>{r.qualifier}.</em></h3>
+                  <div className="price" style={{ paddingTop:6 }}><span className="tag">EST · {r.price}</span><span style={{ color:"var(--muted)" }}>{r.tag}</span></div>
+                </div>
+              </div>
+              <div className="why" style={{ paddingTop:12 }}>{r.why}</div>
+            </div>
+          </div>
+        ))}
+        <div className="pad" style={{ paddingTop: 4, paddingBottom: 32 }}>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button className="btn ghost" onClick={onReset}>Recompute</button>
+            <button className="btn pink" onClick={() => onSelect(active)}>Open <span className="arr"/></button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── Detail
+const Detail = ({ item, idx, onBack, onShare, saved, onToggleSave }) => (
+  <>
+    <TopBar title={`FIG · ${String.fromCharCode(65+idx)}`} onBack={onBack}
+      right={<div style={{ display: "flex", gap: 14 }}>
+        <span onClick={onToggleSave} style={{ cursor:"pointer", color: saved ? "var(--pink-deep)" : "var(--ink)" }}><Ico name="heart" color={saved?"var(--pink-deep)":"currentColor"}/></span>
+        <span onClick={onShare} style={{ cursor:"pointer" }}><Ico name="share"/></span>
+      </div>}/>
+    <div className="view">
+      <div className="pad" style={{ paddingBottom: 8 }}>
+        <Eyebrow num={`0${idx+1}`}>{item.tag}</Eyebrow>
+        <div className="display" style={{ marginTop: 8 }}>{item.name},<br/><em>{item.qualifier}.</em></div>
+      </div>
+      <div style={{ background: "var(--ink)", color: "var(--paper)", padding: "8px 22px", display: "flex", justifyContent: "space-between" }} className="mono">
+        <span>SCALE 1:{idx+2}</span><span>EST · {item.price}</span><span>REV 03</span>
+      </div>
+      <div className="pad" style={{ paddingTop: 16 }}>
+        <div style={{ border:"0.5px solid var(--ink)", background:"var(--tint)", display:"flex", alignItems:"center", justifyContent:"center", padding:"40px 0" }}>
+          <TagIcon tag={item.tag} size={96}/>
+        </div>
+      </div>
+      <div className="pad">
+        <div className="section-h"><span className="ti">Why this one</span><span className="right">REASONING</span></div>
+        <div style={{ fontSize: 14, lineHeight: 1.65, color: "#3a2e2c" }}>{item.why}</div>
+        <div className="section-h"><span className="ti">Specification</span><span className="right">DATA</span></div>
+        <div className="card">
+          {[["Category", item.tag],["Est. price", item.price],["Confidence", "0.84"],["Sourcing", "Independent makers"],["Lead time", "5–9 days"]].map(([k,v],i)=>(
+            <div className="row" key={i}><span className="k">{k}</span><span className="v">{v}</span></div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginTop: 24, marginBottom: 32 }}>
+          <button className="btn ghost" onClick={onToggleSave}>{saved ? "Saved ✓" : "Save"}</button>
+          <button className="btn pink" onClick={onShare}>Acquire <span className="arr"/></button>
+        </div>
+      </div>
+    </div>
+  </>
+);
+
+// ── Share
+const ShareSheet = ({ item, onClose }) => {
+  const [copied, setCopied] = useState(false);
+  const opts = [
+    { lbl: "Messages", glyph: "✉" },{ lbl: "Mail", glyph: "@" },
+    { lbl: "Copy link", glyph: "⎘" },{ lbl: "Notes", glyph: "≡" },
+    { lbl: "AirDrop", glyph: "◇" },{ lbl: "WhatsApp", glyph: "○" },
+    { lbl: "Save img", glyph: "▢" },{ lbl: "More", glyph: "···" },
+  ];
+  return (
+    <div className="share-overlay" onClick={onClose}>
+      <div className="share-sheet" onClick={e => e.stopPropagation()}>
+        <div className="share-grip"/>
+        <Eyebrow num="08">Share gift</Eyebrow>
+        <div className="display" style={{ fontSize: 22, marginTop: 8 }}>{item.name},<br/><em>{item.qualifier}.</em></div>
+        <div className="share-options">
+          {opts.map((o,i) => (
+            <div key={i} className="share-opt" onClick={() => { if(o.lbl==="Copy link"){setCopied(true);setTimeout(onClose,700);}else{onClose();} }}>
+              <span className="glyph">{o.glyph}</span>
+              <span className="lbl">{o.lbl}</span>
+            </div>
+          ))}
+        </div>
+        {copied && <div className="mono" style={{ textAlign:"center", marginTop:14, color:"var(--pink-deep)" }}>Link copied to clipboard</div>}
+        <div style={{ marginTop: 18 }}><button className="btn ghost" onClick={onClose}>Cancel</button></div>
+      </div>
+    </div>
+  );
+};
+
+// ── People
+const People = ({ onPick, onAdd }) => (
+  <>
+    <TopBar title={`People · ${RECIPIENTS.length} registered`}/>
+    <div className="view">
+      <div className="pad">
+        <Eyebrow num="00">People</Eyebrow>
+        <div className="display" style={{ marginTop: 10 }}>The people<br/>you <em>remember.</em></div>
+      </div>
+      <div className="pad" style={{ paddingTop: 4 }}>
+        <button className="btn ghost" onClick={onAdd}><Ico name="plus" size={14}/> &nbsp; Add recipient</button>
+      </div>
+      <div className="pad" style={{ paddingTop: 16, paddingBottom: 32 }}>
+        {RECIPIENTS.map((r,i) => (
+          <div key={i} className="list-row" onClick={() => onPick(r)}>
+            <div className={"avatar" + (i===0 ? " pink" : "")}>{r.initials}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="name">{r.name}</div>
+              <div className="sub">{r.role} · {r.next}</div>
+            </div>
+            <div className="arrow"/>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>
+);
+
+// ── Calendar
+const Calendar = ({ onCompose }) => {
+  const groups = [
+    { ti: "This month", right: "MAY · 26", filter: o => o.month === "MAY" },
+    { ti: "Next month", right: "JUN · 26", filter: o => o.month === "JUN" },
+    { ti: "Later",      right: "JUL+",    filter: o => ["JUL","AUG"].includes(o.month) },
+  ];
+  return (
+    <>
+      <TopBar title="Calendar · upcoming"/>
+      <div className="view">
+        <div className="pad">
+          <Eyebrow num="00">Calendar</Eyebrow>
+          <div className="display" style={{ marginTop: 10 }}>The days<br/>that <em>matter.</em></div>
+        </div>
+        <div className="pad" style={{ paddingTop: 8, paddingBottom: 24 }}>
+          {groups.map((g,i) => (
+            <React.Fragment key={i}>
+              <div className="section-h"><span className="ti">{g.ti}</span><span className="right">{g.right}</span></div>
+              {OCCASIONS.filter(g.filter).map((o,j) => (
+                <div className="occ" key={j}>
+                  <div className="date"><div className="d">{o.day}</div><div className="m">{o.month}</div></div>
+                  <div className="who"><div className="nm">{o.name}</div><div className="sub">{o.kind} · in {o.daysAway} days</div></div>
+                  {i < 2 ? (
+                    <button className={"btn " + (i===0?"pink":"ghost")} style={{ width:"auto", padding:"10px 14px", fontSize:9 }} onClick={onCompose}>Plan {i===0 && <span className="arr"/>}</button>
+                  ) : <div className="arrow"/>}
+                </div>
+              ))}
+            </React.Fragment>
+          ))}
+          <div className="section-h"><span className="ti">Notification preview</span><span className="right">MOCK</span></div>
+          <div className="notif">
+            <div className="ico">GM</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 500 }}>Yael's birthday is in 21 days.</div>
+              <div className="mono" style={{ color: "var(--muted)", marginTop: 4 }}>Tap to compose three considered objects.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── History
+const History = () => (
+  <>
+    <TopBar title={`History · ${HISTORY.length} entries`}/>
+    <div className="view">
+      <div className="pad">
+        <Eyebrow num="00">History</Eyebrow>
+        <div className="display" style={{ marginTop: 10 }}>What you<br/><em>gave.</em></div>
+      </div>
+      <div className="pad" style={{ paddingTop: 16, paddingBottom: 32 }}>
+        {HISTORY.map((h,i) => (
+          <div key={i} style={{ display:"grid", gridTemplateColumns:"70px 1fr", gap:14, padding:"14px 0", borderBottom:"0.5px solid rgba(26,20,20,0.15)" }}>
+            <div style={{ aspectRatio:"1", border:"0.5px solid var(--ink)", padding:4, background:"var(--paper-pure)" }}>
+              <svg viewBox="0 0 60 60" width="100%" height="100%">
+                <circle cx="30" cy="30" r="20" fill="none" stroke="#1a1414" strokeWidth="0.6"/>
+                <circle cx="30" cy="30" r="10" fill={i%2===0?"#d96b7a":"#1a1414"}/>
+              </svg>
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize:14, fontWeight:500, lineHeight:1.2 }}>{h.gift}</div>
+              <div className="mono" style={{ color:"var(--muted)", marginTop:4 }}>{h.recipient} · {h.date}</div>
+              <div style={{ fontSize:12, color:"#3a2e2c", marginTop:6, lineHeight:1.5 }}>{h.note}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </>
+);
+
+// ── Settings
+const Settings = () => {
+  const [s, setS] = useState({ birthday: true, anniversary: true, speculative: false });
+  const [apiKey, setApiKey] = useState(getKey());
+  const [saved, setSaved] = useState(false);
+
+  const saveKey = () => {
+    setKey(apiKey.trim());
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2000);
+  };
+
+  return (
+    <>
+      <TopBar title="Settings · v1.0"/>
+      <div className="view">
+        <div className="pad">
+          <Eyebrow num="00">Settings</Eyebrow>
+          <div className="display" style={{ marginTop: 10 }}>Tune the <em>engine.</em></div>
+        </div>
+        <div className="pad" style={{ paddingTop: 16, paddingBottom: 32 }}>
+
+          <div className="section-h"><span className="ti">API Key</span><span className="right">REQUIRED</span></div>
+          <div style={{ background: "var(--tint)", border: "0.5px solid var(--ink)", padding: "14px 16px", marginBottom: 12 }}>
+            <div className="mono" style={{ color: "var(--muted)", marginBottom: 10 }}>
+              Anthropic API key — console.anthropic.com'dan al
+            </div>
+            <input
+              type="password"
+              placeholder="sk-ant-..."
+              value={apiKey}
+              onChange={e => setApiKey(e.target.value)}
+              style={{ width:"100%", border:"0", borderBottom:"0.5px solid var(--ink)", padding:"8px 0", fontFamily:"JetBrains Mono, monospace", fontSize:11, background:"transparent", outline:"none", color:"var(--ink)", letterSpacing:"0.05em" }}
+            />
+            <button className="btn pink" style={{ marginTop:12, padding:"10px 16px", fontSize:10 }} onClick={saveKey}>
+              {saved ? "Saved ✓" : "Save key"}
+            </button>
+          </div>
+
+          <div className="section-h"><span className="ti">Notifications</span><span className="right">PUSH</span></div>
+          <div className="set-row"><span className="l">Birthday reminders</span><div className={"toggle"+(s.birthday?" on":"")} onClick={()=>setS({...s, birthday:!s.birthday})}><div className="knob"/></div></div>
+          <div className="set-row"><span className="l">Anniversary reminders</span><div className={"toggle"+(s.anniversary?" on":"")} onClick={()=>setS({...s, anniversary:!s.anniversary})}><div className="knob"/></div></div>
+          <div className="set-row"><span className="l">Lead time</span><span className="r">14 days ›</span></div>
+
+          <div className="section-h"><span className="ti">Engine</span><span className="right">AI</span></div>
+          <div className="set-row"><span className="l">Model</span><span className="r">Claude Haiku 4.5 ›</span></div>
+          <div className="set-row"><span className="l">Tone</span><span className="r">Considered ›</span></div>
+          <div className="set-row"><span className="l">Allow speculative finds</span><div className={"toggle"+(s.speculative?" on":"")} onClick={()=>setS({...s, speculative:!s.speculative})}><div className="knob"/></div></div>
+
+          <div className="section-h"><span className="ti">Account</span><span className="right">PROFILE</span></div>
+          <div className="set-row"><span className="l">Plan</span><span className="r">Free · 12 left</span></div>
+          <div className="set-row"><span className="l">Export data</span><span className="r">›</span></div>
+          <div className="set-row"><span className="l">Sign out</span><span className="r" style={{ color:"var(--pink-deep)" }}>›</span></div>
+
+          <div style={{ marginTop:32, paddingTop:14, borderTop:"0.5px dashed var(--ink)", display:"flex", justifyContent:"space-between" }} className="mono">
+            <span style={{ color:"var(--muted)" }}>GIFTMIND v1.0 · BUILD 043</span>
+            <span style={{ color:"var(--muted)" }}>REV 03</span>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+};
+
+// ── TabBar
+const TabBar = ({ tab, onTab }) => {
+  const tabs = [
+    { id: "compose", lbl: "Compose" },{ id: "people", lbl: "People" },
+    { id: "calendar", lbl: "Calendar" },{ id: "history", lbl: "History" },
+    { id: "settings", lbl: "Settings" },
+  ];
+  return (
+    <div className="tabbar">
+      {tabs.map(t => (
+        <div key={t.id} className={"tab" + (tab === t.id ? " on" : "")} onClick={() => onTab(t.id)}>
+          <Ico name={t.id} size={16} color={tab === t.id ? "var(--pink-deep)" : "currentColor"}/>
+          <span>{t.lbl}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
+
+// ── App
+const App = () => {
+  const [tab, setTab] = useState("compose");
+  const [view, setView] = useState("compose");
+  const [form, setForm] = useState({ age: "", gender: "", relationship: "", occasion: "", interests: "", budget: 100 });
+  const [results, setResults] = useState([]);
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [savedIdxs, setSavedIdxs] = useState([]);
+  const [share, setShare] = useState(false);
+  const [error, setError] = useState(null);
+
+  const goTab = (t) => { setTab(t); setView(t); setShare(false); setError(null); };
+
+  const handleCompute = () => { setError(null); setView("loading"); };
+
+  const handleDone = (res) => { setResults(res); setView("results"); };
+
+  const handleError = (msg) => { setError(msg); setView("compose"); };
+
+  return (
+    <>
+      {error && view === "compose" && <div style={{ position:"absolute", top: 44, left:0, right:0, zIndex:10 }} className="err-banner">⚠ {error}</div>}
+      {view === "compose" && <Compose form={form} setForm={setForm} onCompute={handleCompute}/>}
+      {view === "loading" && <Loading form={form} onDone={handleDone} onError={handleError}/>}
+      {view === "results" && <Results form={form} results={results} onBack={() => setView("compose")} onReset={() => setView("compose")} onSelect={(i) => { setActiveIdx(i); setView("detail"); }}/>}
+      {view === "detail" && results[activeIdx] && <Detail item={results[activeIdx]} idx={activeIdx}
+        saved={savedIdxs.includes(activeIdx)}
+        onToggleSave={() => setSavedIdxs(savedIdxs.includes(activeIdx) ? savedIdxs.filter(i => i !== activeIdx) : [...savedIdxs, activeIdx])}
+        onShare={() => setShare(true)}
+        onBack={() => setView("results")}/>}
+      {view === "people" && <People onPick={() => goTab("compose")} onAdd={() => goTab("compose")}/>}
+      {view === "calendar" && <Calendar onCompose={() => goTab("compose")}/>}
+      {view === "history" && <History/>}
+      {view === "settings" && <Settings/>}
+      <TabBar tab={tab} onTab={goTab}/>
+      {share && results[activeIdx] && <ShareSheet item={results[activeIdx]} onClose={() => setShare(false)}/>}
+    </>
+  );
+};
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
